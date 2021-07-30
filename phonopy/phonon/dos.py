@@ -175,6 +175,18 @@ class CauchyDistribution(object):
     def calc(self, x):
         return self._gamma / np.pi / (x**2 + self._gamma**2)
 
+class DeltaDistribution(object):
+    def __init__(self, gamma):
+        self._gamma = gamma
+
+    def calc(self, x):
+        new_x=[]
+        for f in x[0]:
+            if (f < self._gamma) and ( f>=0):
+                new_x.append(1)
+            else:
+                new_x.append(0)
+        return [new_x] 
 
 def run_tetrahedron_method_dos(mesh,
                                frequency_points,
@@ -198,15 +210,19 @@ def run_tetrahedron_method_dos(mesh,
     arr_shape = frequencies.shape + (len(frequency_points), _coef.shape[1])
     dos = np.zeros(arr_shape, dtype='double')
 
-    phonoc.tetrahedron_method_dos(
-        dos,
-        np.array(mesh, dtype='int_'),
-        frequency_points,
-        frequencies,
-        _coef,
-        np.array(grid_address, dtype='int_', order='C'),
-        np.array(grid_mapping_table, dtype='int_', order='C'),
-        relative_grid_address)
+    phonoc.tetrahedron_method_dos(dos,
+                                  mesh,
+                                  frequency_points,
+                                  frequencies,
+                                  _coef,
+                                  grid_address,
+                                  grid_mapping_table,
+                                  relative_grid_address)
+
+
+
+
+
     if coef is None:
         return dos[:, :, :, 0].sum(axis=0).sum(axis=0) / np.prod(mesh)
     else:
@@ -232,7 +248,7 @@ class Dos(object):
         self._frequency_points = None
         self._sigma = sigma
         self.set_draw_area()
-        self.set_smearing_function('Normal')
+        self.set_smearing_function('Delta')
 
     @property
     def frequency_points(self):
@@ -243,9 +259,18 @@ class Dos(object):
         function_name ==
         'Normal': smearing is done by normal distribution.
         'Cauchy': smearing is done by Cauchy distribution.
+        'Delta' : no smearing is used.
         """
         if function_name == 'Cauchy':
             self._smearing_function = CauchyDistribution(self._sigma)
+        elif function_name == 'Delta':
+            print("\n\n\n \
+            ================================\n \
+                    BE CAREFULL!!!!!\n \
+                THIS IS A MODFIED VERSION OF PHONOPY, BY SEYEDMOHAMADMOOSAVI\n \
+            ================================\n \
+                    \n\n\n")
+            self._smearing_function = DeltaDistribution(self._sigma)
         else:
             self._smearing_function = NormalDistribution(self._sigma)
 
